@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "@progress/kendo-theme-default/dist/all.css";
+
 
 :root {
   --background: #ffffff;
