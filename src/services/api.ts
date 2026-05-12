@@ -71,9 +71,39 @@ export const api = {
   },
 
   // Customers
-  async getCustomers(): Promise<PaginatedResponse<Customer>> {
-    const response = await fetch(`${API_BASE_URL}/customers`);
+  async getCustomers(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<Customer>> {
+    const query = new URLSearchParams();
+    if (params.page) query.append("page", params.page.toString());
+    if (params.limit) query.append("limit", params.limit.toString());
+    const response = await fetch(`${API_BASE_URL}/customers?${query.toString()}`);
     if (!response.ok) throw new Error("Failed to fetch customers");
     return response.json();
+  },
+
+  async createCustomer(data: Omit<Customer, "id">): Promise<Customer> {
+    const response = await fetch(`${API_BASE_URL}/customers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error("Failed to create customer");
+    return response.json();
+  },
+
+  async updateCustomer(id: number, data: Partial<Omit<Customer, "id">>): Promise<Customer> {
+    const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error("Failed to update customer");
+    return response.json();
+  },
+
+  async deleteCustomer(id: number): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) throw new Error("Failed to delete customer");
   },
 };
