@@ -12,34 +12,42 @@ import { Order, PaginatedResponse } from "@/types";
 import { api } from "@/services/api";
 import { Edit, Trash2, Eye } from "lucide-react";
 import Link from "next/link";
+import { LocalizationProvider, loadMessages } from "@progress/kendo-react-intl";
+import { esMessages } from "@/utils/kendoMessages";
+
+// Cargar los mensajes en español
+loadMessages(esMessages, "es-ES");
 
 export function OrderGrid() {
-  const [data, setData] = useState<Order[]>([]);
-  const [total, setTotal] = useState(0);
+  const [allData, setAllData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [dataState, setDataState] = useState<State>({
     skip: 0,
     take: 10,
-    sort: [{ field: "orderDate", dir: "desc" }]
+    sort: [{ field: "orderDateParsed", dir: "desc" }]
   });
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const page = Math.floor(dataState.skip! / dataState.take!) + 1;
-      const sortField = dataState.sort?.[0]?.field;
-      const sortDir = dataState.sort?.[0]?.dir;
-      const sortParam = sortField ? `${sortDir === "desc" ? "-" : "+"}${sortField}` : undefined;
-
+      // Obtenemos hasta 100 pedidos (límite máximo del backend) para procesar localmente
       const response = await api.getOrders({
-        page,
-        limit: dataState.take,
-        sort: sortParam
+        page: 1,
+        limit: 100,
       });
 
-      setData(response.data);
-      setTotal(response.totalItems);
+      // Mapeamos los datos para que KendoReact pueda filtrar fácilmente por texto y fechas
+      const mappedData = response.data.map(order => ({
+        ...order,
+        customerFullName: order.customer 
+          ? `${order.customer.firstName} ${order.customer.lastName}`
+          : `ID: ${order.customerId}`,
+        orderDateParsed: new Date(order.orderDate),
+        totalAmountStr: order.totalAmount.toString() // Para filtrar como texto
+      }));
+
+      setAllData(mappedData);
     } catch (error) {
       console.error("Error fetching orders:", error);
     } finally {
@@ -49,7 +57,7 @@ export function OrderGrid() {
 
   useEffect(() => {
     fetchOrders();
-  }, [dataState]);
+  }, []);
 
   const onDataStateChange = (e: GridDataStateChangeEvent) => {
     setDataState(e.dataState);
@@ -87,71 +95,65 @@ export function OrderGrid() {
     );
   };
 
+  // Procesamos los datos usando la utilidad de Kendo (filtra, ordena, pagina)
+  const result = process(allData, dataState);
+
   return (
-    <div className="bg-white p-4 rounded-lg shadow dark:bg-zinc-900 relative">
+    <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md p-5 rounded-2xl shadow-xl shadow-indigo-500/5 dark:shadow-none border border-white/20 dark:border-white/5 relative overflow-hidden">
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10 dark:bg-black/50">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10 dark:bg-black/50 backdrop-blur-sm">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
         </div>
       )}
-      <Grid
-        pageable={true}
-        sortable={true}
-        filterable={true}
-        data={data}
-        total={total}
-        skip={dataState.skip}
-        take={dataState.take}
-        sort={dataState.sort}
-        onDataStateChange={onDataStateChange}
-        className="k-grid-custom"
-        style={{ height: "500px" }}
-      >
-        <Column field="orderNumber" title="Nro Pedido" width="150px" />
-        <Column 
-          field="customer" 
-          title="Cliente" 
-          cells={{
-            data: (props) => (
-              <td>
-                {props.dataItem.customer 
-                  ? `${props.dataItem.customer.firstName} ${props.dataItem.customer.lastName}`
-                  : `ID: ${props.dataItem.customerId}`}
-              </td>
-            )
-          }}
-        />
-        <Column 
-          field="orderDate" 
-          title="Fecha" 
-          format="{0:d}" 
-          cells={{
-            data: (props) => (
-              <td>{new Date(props.dataItem.orderDate).toLocaleDateString()}</td>
-            )
-          }}
-        />
-        <Column 
-          field="totalAmount" 
-          title="Total" 
-          format="{0:c}" 
-          cells={{
-            data: (props) => (
-              <td className="font-semibold text-gray-900 dark:text-white">
-                ${props.dataItem.totalAmount.toFixed(2)}
-              </td>
-            )
-          }}
-        />
-        <Column 
-          title="Acciones" 
-          width="150px" 
-          cells={{
-            data: ActionCell
-          }}
-        />
-
-      </Grid>
+      <LocalizationProvider language="es-ES">
+        <Grid
+          pageable={true}
+          sortable={true}
+          filterable={true}
+          data={result.data}
+          total={result.total}
+          skip={dataState.skip}
+          take={dataState.take}
+          sort={dataState.sort}
+          filter={dataState.filter}
+          onDataStateChange={onDataStateChange}
+          className="k-grid-custom"
+          style={{ height: "500px" }}
+        >
+          <Column field="orderNumber" title="Nro Pedido" width="150px" />
+          <Column field="customerFullName" title="Cliente" />
+          <Column 
+            field="orderDateParsed" 
+            title="Fecha" 
+            format="{0:d}"
+            filter="date"
+            cells={{
+              data: (props) => (
+                <td>{props.dataItem.orderDateParsed.toLocaleDateString()}</td>
+              )
+            }}
+          />
+          <Column 
+            field="totalAmountStr" 
+            title="Total" 
+            filter="text"
+            cells={{
+              data: (props) => (
+                <td className="font-semibold text-gray-900">
+                  ${Number(props.dataItem.totalAmount).toFixed(2)}
+                </td>
+              )
+            }}
+          />
+          <Column 
+            title="Acciones" 
+            width="150px" 
+            cells={{
+              data: ActionCell
+            }}
+          />
+        </Grid>
+      </LocalizationProvider>
     </div>
   );
 }
