@@ -9,6 +9,7 @@ import { api } from "@/services/api";
 import { Customer, Product, OrderItem } from "@/types";
 import { Plus, Trash2, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export function OrderForm({ orderId }: { orderId?: number }) {
   const router = useRouter();
@@ -25,7 +26,8 @@ export function OrderForm({ orderId }: { orderId?: number }) {
           api.getProducts({ limit: 100 }),
         ]);
         setCustomers(customersRes.data);
-        setProducts(productsRes.data);
+        // Filtrar productos para que solo se puedan seleccionar los que están activos
+        setProducts(productsRes.data.filter(p => !p.isDiscontinued));
 
         if (orderId) {
           const order = await api.getOrderById(orderId);
@@ -78,19 +80,21 @@ export function OrderForm({ orderId }: { orderId?: number }) {
 
       if (orderId) {
         await api.updateOrder(orderId, payload as any);
+        toast.success("Pedido actualizado con éxito");
       } else {
         await api.createOrder(payload);
+        toast.success("Pedido creado correctamente");
       }
       router.push("/orders");
     } catch (error) {
-      alert("Error al guardar el pedido");
+      toast.error("Error al guardar el pedido");
     }
   };
 
   if (loading) return <div>Cargando...</div>;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow dark:bg-zinc-900 max-w-4xl mx-auto">
+    <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md p-6 rounded-2xl shadow-xl shadow-indigo-500/5 dark:shadow-none border border-white/20 dark:border-white/5 max-w-4xl mx-auto">
       <Form
         onSubmit={handleSubmit}
         render={(formRenderProps) => (

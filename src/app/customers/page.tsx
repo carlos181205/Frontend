@@ -5,6 +5,8 @@ import { Grid, GridColumn, GridCellProps } from "@progress/kendo-react-grid";
 import { api } from "@/services/api";
 import { Customer } from "@/types";
 import { Plus, X, Loader2, ChevronLeft, ChevronRight, Edit, Trash2 } from "lucide-react";
+import { LocalizationProvider } from "@progress/kendo-react-intl";
+import toast from "react-hot-toast";
 
 const PAGE_SIZE = 10;
 
@@ -26,21 +28,21 @@ const ActionCell = (props: any) => {
   if (!dataItem || !dataItem.id) return <td {...props.tdProps}></td>;
 
   return (
-    <td {...props.tdProps} className="text-center">
+    <td {...props.tdProps} className="text-center k-command-cell">
       <div className="flex gap-2 justify-center">
         <button 
           onClick={() => onEdit(dataItem)}
-          className="px-2 py-1 text-xs font-bold text-blue-600 border border-blue-600 rounded hover:bg-blue-50 transition-colors"
+          className="p-1 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/20"
           title="Editar"
         >
-          Editar
+          <Edit className="w-4 h-4" />
         </button>
         <button 
           onClick={() => onDelete(dataItem.id)}
-          className="px-2 py-1 text-xs font-bold text-red-600 border border-red-600 rounded hover:bg-red-50 transition-colors"
+          className="p-1 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/20"
           title="Borrar"
         >
-          Borrar
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </td>
@@ -125,10 +127,12 @@ export default function CustomersPage() {
     try {
       if (editingId) {
         await api.updateCustomer(editingId, form);
+        toast.success("Cliente actualizado");
         setShowModal(false);
         loadCustomers(page);
       } else {
         await api.createCustomer(form);
+        toast.success("Cliente creado con éxito");
         setShowModal(false);
         const newTotal = totalItems + 1;
         const newLastPage = Math.ceil(newTotal / PAGE_SIZE);
@@ -151,6 +155,7 @@ export default function CustomersPage() {
     setLoading(true);
     try {
       await api.deleteCustomer(id);
+      toast.success("Cliente eliminado");
       const newTotal = totalItems - 1;
       const newMaxPages = Math.ceil(newTotal / PAGE_SIZE);
       if (page > newMaxPages && page > 1) {
@@ -159,56 +164,65 @@ export default function CustomersPage() {
         loadCustomers(page);
       }
     } catch (err) {
-      alert("Error al eliminar el cliente.");
+      toast.error("Error al eliminar el cliente.");
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6 p-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Header Premium */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md p-6 rounded-2xl shadow-xl shadow-indigo-500/5 dark:shadow-none border border-white/20 dark:border-white/5">
         <div>
-          <h1 className="text-2xl font-bold dark:text-white">Clientes</h1>
-          <p className="text-sm text-gray-500">Gestión de base de datos de clientes.</p>
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 tracking-tight">
+            Clientes
+          </h1>
+          <p className="text-gray-500 dark:text-zinc-400 mt-1">
+            Gestión de la base de datos de clientes, contactos y ubicaciones.
+          </p>
         </div>
-        <button
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+        <button 
           onClick={() => openModal()}
+          className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-xl shadow-lg shadow-indigo-500/30 text-white bg-indigo-600 hover:bg-indigo-700 transition-all hover:-translate-y-0.5"
         >
-          <Plus size={18} />
+          <Plus className="w-5 h-5 mr-2" />
           Nuevo Cliente
         </button>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 rounded-xl shadow border dark:border-zinc-800 relative overflow-hidden">
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 blur-3xl -z-10 rounded-3xl" />
+        <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md p-5 rounded-2xl shadow-xl shadow-indigo-500/5 dark:shadow-none border border-white/20 dark:border-white/5 relative overflow-hidden">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10 dark:bg-black/50">
             <Loader2 className="animate-spin h-8 w-8 text-indigo-600" />
           </div>
         )}
 
-        <Grid data={customers} style={{ height: "500px" }}>
-          <GridColumn field="id" title="ID" width="60px" />
-          <GridColumn field="firstName" title="Nombre" />
-          <GridColumn field="lastName" title="Apellido" />
-          <GridColumn field="city" title="Ciudad" />
-          <GridColumn field="country" title="País" />
-          <GridColumn field="phone" title="Teléfono" />
-          {/* USANDO EL NUEVO SISTEMA 'CELLS' DE KENDOREACT 14+ */}
-          <GridColumn
-            title="Acciones"
-            width="160px"
-            cells={{
-              data: (props) => (
-                <ActionCell 
-                  {...props} 
-                  onEdit={openModal} 
-                  onDelete={handleDelete} 
-                />
-              )
-            }}
-          />
-        </Grid>
+        <LocalizationProvider language="es-ES">
+          <Grid data={customers} style={{ height: "500px" }} className="k-grid-custom">
+            <GridColumn field="id" title="ID" width="60px" />
+            <GridColumn field="firstName" title="Nombre" />
+            <GridColumn field="lastName" title="Apellido" />
+            <GridColumn field="city" title="Ciudad" />
+            <GridColumn field="country" title="País" />
+            <GridColumn field="phone" title="Teléfono" />
+            {/* USANDO EL NUEVO SISTEMA 'CELLS' DE KENDOREACT 14+ */}
+            <GridColumn
+              title="Acciones"
+              width="100px"
+              cells={{
+                data: (props) => (
+                  <ActionCell 
+                    {...props} 
+                    onEdit={openModal} 
+                    onDelete={handleDelete} 
+                  />
+                )
+              }}
+            />
+          </Grid>
+        </LocalizationProvider>
 
         <div className="p-4 flex justify-between items-center text-sm bg-gray-50 dark:bg-zinc-800/50 border-t dark:border-zinc-800">
           <span className="text-gray-500">Total: {totalItems} clientes</span>
@@ -229,6 +243,7 @@ export default function CustomersPage() {
               <ChevronRight size={16} />
             </button>
           </div>
+        </div>
         </div>
       </div>
 

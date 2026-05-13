@@ -1,74 +1,33 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { Grid, GridColumn as Column } from "@progress/kendo-react-grid";
-import { api } from "@/services/api";
-import { Product } from "@/types";
-import { Package } from "lucide-react";
+import { ProductGrid } from "@/components/products/ProductGrid";
+import { Plus } from "lucide-react";
+import Link from "next/link";
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.getProducts({ limit: 100 })
-      .then(res => setProducts(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Header Premium */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md p-6 rounded-2xl shadow-xl shadow-indigo-500/5 dark:shadow-none border border-white/20 dark:border-white/5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Productos</h1>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Catálogo de productos disponibles.
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 tracking-tight">
+            Productos
+          </h1>
+          <p className="text-gray-500 dark:text-zinc-400 mt-1">
+            Gestiona el catálogo de productos, disponibilidad, precios y agrega nuevos ítems.
           </p>
         </div>
-      </div>
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10 dark:bg-black/50">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
-        </div>
-      )}
-
-      <div className="bg-white p-4 rounded-lg shadow dark:bg-zinc-900">
-        <Grid
-          data={products}
-          style={{ height: "500px" }}
+        <Link 
+          href="/products/new"
+          className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-xl shadow-lg shadow-indigo-500/30 text-white bg-indigo-600 hover:bg-indigo-700 transition-all hover:-translate-y-0.5"
         >
-          <Column field="id" title="ID" width="60px" />
-          <Column field="productName" title="Nombre del Producto" />
-          <Column field="package" title="Empaque" />
-          <Column 
-            field="unitPrice" 
-            title="Precio Unit." 
-            cells={{
-              data: (props) => (
-                <td>${props.dataItem.unitPrice.toFixed(2)}</td>
-              )
-            }}
-          />
-          <Column 
-            field="isDiscontinued" 
-            title="Estado" 
-            cells={{
-              data: (props) => (
-                <td>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                    props.dataItem.isDiscontinued 
-                      ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" 
-                      : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                  }`}>
-                    {props.dataItem.isDiscontinued ? "Discontinuado" : "Activo"}
-                  </span>
-                </td>
-              )
-            }}
-          />
+          <Plus className="w-5 h-5 mr-2" />
+          Nuevo Producto
+        </Link>
+      </div>
 
-        </Grid>
+      {/* Grid Container */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 blur-3xl -z-10 rounded-3xl" />
+        <ProductGrid />
       </div>
     </div>
   );
